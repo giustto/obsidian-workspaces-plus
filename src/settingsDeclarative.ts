@@ -109,6 +109,11 @@ export function getSettingDefinitions(tab: WorkspacesPlusSettingsTab): SettingDe
           control: { type: "toggle", key: "saveOnChange" },
         },
         {
+          name: TOGGLE_TEXT.smartScrollRestoration.name,
+          desc: TOGGLE_TEXT.smartScrollRestoration.desc,
+          control: { type: "toggle", key: "smartScrollRestoration" },
+        },
+        {
           name: TOGGLE_TEXT.trackOpenFiles.name,
           desc: TOGGLE_TEXT.trackOpenFiles.desc,
           control: { type: "toggle", key: "trackOpenFiles" },
@@ -311,6 +316,9 @@ export function setControlValue(tab: WorkspacesPlusSettingsTab, key: string, val
   void PluginSettingTab.prototype.setControlValue.call(tab, key, value);
 
   switch (key) {
+    case "smartScrollRestoration":
+      void tab.plugin.smartScroll.configure();
+      break;
     case "workspaceSwitcherRibbon":
       tab.plugin.toggleWorkspaceRibbonButton();
       break;

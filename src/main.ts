@@ -14,9 +14,11 @@ import { WorkspacesPlusPluginModeModal } from "./modeModal";
 import { NewWorkspaceModal } from "./newWorkspaceModal";
 import { around } from "monkey-around";
 import Utils from "./utils";
+import { SmartScrollManager } from "./smartScroll/manager";
 import { cycleWorkspace as runWorkspaceCycle } from "./workspaceCycle";
 
 export default class WorkspacesPlus extends Plugin {
+  smartScroll: SmartScrollManager;
   settings: WorkspacesPlusSettings;
   workspacePlugin: WorkspacePluginInstance;
   debug: boolean;
@@ -48,6 +50,9 @@ export default class WorkspacesPlus extends Plugin {
     this.utils = new Utils(this);
     this.workspacePlugin = this.utils.workspacePlugin;
     this.isNativePluginEnabled = this.utils.isNativePluginEnabled;
+    this.smartScroll = new SmartScrollManager(this);
+    await this.smartScroll.load();
+    this.smartScroll.start();
     this.installWorkspaceHooks();
     this.registerEvent(
       this.app.internalPlugins.on("change", plugin => {
@@ -80,6 +85,7 @@ export default class WorkspacesPlus extends Plugin {
       // persist) an empty app.vault.config.
       if (this.modesEnabled) this.storeGlobalSettings();
       this.setPlatformWorkspace();
+      if (!this.startupWorkspaceLoadTriggered) void this.smartScroll.activate(this.workspacePlugin.activeWorkspace);
 
       this.backupCoreConfig();
 
@@ -116,6 +122,7 @@ export default class WorkspacesPlus extends Plugin {
   }
 
   onunload(): void {
+    this.smartScroll?.shutdown();
     if (this.modesEnabled) {
       let combinedSettings = this.mergeGlobalSettings();
       this.applySettings(combinedSettings);
@@ -463,6 +470,7 @@ export default class WorkspacesPlus extends Plugin {
   }
 
   onWorkspaceRename = (name: string, oldName: string) => {
+    this.smartScroll?.rename(oldName, name);
     this.setWorkspaceName();
     // remove the old command
     this.app.commands.removeCommand(`${this.manifest.id}:${oldName}`);
@@ -492,6 +500,7 @@ export default class WorkspacesPlus extends Plugin {
   }
 
   onWorkspaceDelete = (workspaceName: string) => {
+    this.smartScroll?.remove(workspaceName);
     this.setWorkspaceName();
     const id = this.manifest.id + ":" + workspaceName;
     this.app.commands.removeCommand(id);
@@ -697,6 +706,7 @@ export default class WorkspacesPlus extends Plugin {
             } else {
               const workspace = this.workspaces[workspaceName];
               if (workspace) {
+                const scrollCapture = plugin.smartScroll?.beginSwitch() ?? Promise.resolve();
                 this.activeWorkspace = workspaceName;
                 // Guards against a rapid second switch superseding this one while its restore
                 // chain is still in flight (see the generation checks below).
@@ -720,6 +730,7 @@ export default class WorkspacesPlus extends Plugin {
                   .then(async () => {
                     // A newer switch started while restore was running -- applying this
                     // (now-stale) layout would revert the user's screen back to it.
+                    await scrollCapture;
                     if (generation !== plugin.workspaceLoadGeneration) return;
                     // Captured here, right before use, rather than at the top of loadWorkspace --
                     // the restore chain above can await real file I/O, and grabbing the ribbon
@@ -734,7 +745,7 @@ export default class WorkspacesPlus extends Plugin {
                         layoutToApply = plugin.utils.preserveSidebarInLayout(layoutToApply, currentLayout);
                       }
                     }
-                    await this.app.workspace.changeLayout(layoutToApply);
+                    await plugin.smartScroll.changeLayout(workspaceName, layoutToApply, () => generation === plugin.workspaceLoadGeneration);
                     if (generation !== plugin.workspaceLoadGeneration) return;
                     // changeLayout() creates the leaves, but leaves in the background stay
                     // "deferred" (a lightweight placeholder) until focused. Force-load every
@@ -760,7 +771,10 @@ export default class WorkspacesPlus extends Plugin {
                             })
                         )
                     );
-                    if (generation === plugin.workspaceLoadGeneration) this.saveData();
+                    if (generation === plugin.workspaceLoadGeneration) {
+                      this.saveData();
+                      void plugin.smartScroll?.activate(workspaceName);
+                    }
                   })
                   .catch((e: unknown) => {
                     console.error("failed to apply workspace layout:", e);

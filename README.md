@@ -34,6 +34,18 @@ Workspaces Plus is a plugin that expands the functionality of [workspaces](https
 - cycle to the next workspace
 - save the current workspace and cycle to the next workspace
 
+### Smart scroll restoration
+
+Enable **Settings → Workspaces Plus → Smart scroll restoration** to remember reading positions independently for each workspace and tab. The option is off by default. The same file or URL can have different positions in different workspaces, including duplicate tabs within a workspace.
+
+- **PDFs:** remember the page, position within the page, and zoom mode, including when workspaces use different pane sizes.
+- **Markdown:** restore reading positions in source mode, Live Preview, and reading mode. Source-line anchors help preserve the location when text is inserted above it.
+- **Surfing (desktop):** keep browser tabs loaded across workspace switches, preserving the page's live state. There is no tab limit or expiry. Retained pages continue using memory and may run background scripts; close unwanted tabs in their workspace to release them. Disabling the feature also releases retained sessions.
+
+Saved positions survive Obsidian restarts in `smart-scroll.json`, separately from plugin settings. After a restart, websites reload and restoration uses content anchors with pixel offsets, falling back to absolute coordinates. It does not use scroll percentages. Exact restoration is best effort when a dynamic or virtualized website has not loaded the target content or no longer exposes a stable anchor. Manual input cancels pending restoration.
+
+Only position and identity metadata is saved; note text, message text, and credentials are not persisted by this feature. No browsing information is sent to external services. PDF and browser retention use isolated private Obsidian APIs, so compatibility may need checking after Obsidian or Surfing updates.
+
 ### Plugin Options
 
 - Toggle keyboard shortcuts on/off for Workspace Picker

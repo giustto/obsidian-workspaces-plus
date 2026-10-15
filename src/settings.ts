@@ -237,6 +237,10 @@ export const TOGGLE_TEXT: Record<string, ToggleText> = {
     name: "Preserve sidebar layout across workspaces",
     desc: "Keep the current left and right sidebar panes, their arrangement, and view state when switching workspaces instead of loading each workspace's saved sidebar layout.",
   },
+  smartScrollRestoration: {
+    name: "Smart scroll restoration",
+    desc: "Remember PDF, Markdown, and browser reading positions for each workspace. Keep Surfing tabs live until closed or Obsidian exits; memory use grows with retained tabs.",
+  },
   trackOpenFiles: {
     name: "Automatically track and restore open files",
     desc:
@@ -281,6 +285,7 @@ export class WorkspacesPlusSettings {
   workspaceSwitcherRibbon: boolean;
   modeSwitcherRibbon: boolean;
   replaceNativeRibbon: boolean;
+  smartScrollRestoration: boolean;
   trackOpenFiles: boolean;
   preserveRibbon: boolean;
   preserveSidebarLayout: boolean;
@@ -305,6 +310,7 @@ export const DEFAULT_SETTINGS: WorkspacesPlusSettings = {
   workspaceSwitcherRibbon: false,
   modeSwitcherRibbon: false,
   replaceNativeRibbon: false,
+  smartScrollRestoration: false,
   trackOpenFiles: true,
   preserveRibbon: false,
   preserveSidebarLayout: false,
@@ -492,6 +498,17 @@ export class WorkspacesPlusSettingsTab extends PluginSettingTab {
         toggle.setValue(this.plugin.settings.saveOnChange).onChange(value => {
           this.plugin.settings.saveOnChange = value;
           void this.plugin.saveData(this.plugin.settings);
+        })
+      );
+
+    new Setting(containerEl)
+      .setName(TOGGLE_TEXT.smartScrollRestoration.name)
+      .setDesc(TOGGLE_TEXT.smartScrollRestoration.desc)
+      .addToggle(toggle =>
+        toggle.setValue(this.plugin.settings.smartScrollRestoration).onChange(value => {
+          this.plugin.settings.smartScrollRestoration = value;
+          void this.plugin.smartScroll.configure();
+          void this.plugin.saveSettings();
         })
       );
 

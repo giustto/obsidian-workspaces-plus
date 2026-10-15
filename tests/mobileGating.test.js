@@ -46,6 +46,7 @@ const stubs = {
   "./workspaceModal": { WorkspacesPlusPluginWorkspaceModal: class {} },
   "./modeModal": { WorkspacesPlusPluginModeModal: class {} },
   "./newWorkspaceModal": { NewWorkspaceModal: class {} },
+  "./smartScroll/manager": { SmartScrollManager: class {} },
   "./utils": { default: class {} },
   "monkey-around": { around: () => noop },
   "./workspaceCycle": { cycleWorkspace: noop },
